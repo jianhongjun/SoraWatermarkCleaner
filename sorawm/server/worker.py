@@ -14,8 +14,8 @@ from sorawm.server.db import get_session
 from sorawm.server.models import Task
 from sorawm.server.schemas import Status, WMRemoveResults
 from sorawm.utils.cloudflare_r2_uploader import CloudflareR2Uploader
-
-
+from dotenv import load_dotenv
+load_dotenv()
 class WMRemoveTaskWorker:
     def __init__(self) -> None:
         self.queue = Queue()
