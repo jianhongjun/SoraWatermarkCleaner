@@ -155,7 +155,7 @@ class WMRemoveTaskWorker:
                 percentage=task.percentage,
                 status=Status(task.status),
                 download_url=task.download_url,
-                expires_in=len(task.download_url) == 0 if "" else "7200"
+                expires_in=7200 if (task.download_url and task.download_url.strip()) else 0
             )
 
     async def get_output_path(self, task_id: str) -> Path | None:
