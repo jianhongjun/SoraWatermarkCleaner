@@ -14,3 +14,4 @@ class WMRemoveResults(BaseModel):
     percentage: int
     status: Status
     download_url: str | None = None
+    expires_in: str | None = None

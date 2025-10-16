@@ -1,4 +1,5 @@
 import asyncio
+import os
 from asyncio import Queue
 from datetime import datetime
 from pathlib import Path
@@ -12,12 +13,14 @@ from sorawm.core import SoraWM
 from sorawm.server.db import get_session
 from sorawm.server.models import Task
 from sorawm.server.schemas import Status, WMRemoveResults
+from sorawm.utils.cloudflare_r2_uploader import CloudflareR2Uploader
 
 
 class WMRemoveTaskWorker:
     def __init__(self) -> None:
         self.queue = Queue()
         self.sora_wm = None
+        self.r2_uploader = None
         self.output_dir = WORKING_DIR
         self.upload_dir = WORKING_DIR / "uploads"
         self.upload_dir.mkdir(exist_ok=True, parents=True)
@@ -25,6 +28,12 @@ class WMRemoveTaskWorker:
     async def initialize(self):
         logger.info("Initializing SoraWM models...")
         self.sora_wm = SoraWM()
+        self.r2_uploader = CloudflareR2Uploader(
+            account_id=os.getenv('ACCOUNT_ID'),
+            access_key_id=os.getenv('ACCESS_KEY_ID'),
+            secret_access_key=os.getenv('SECRET_ACCESS_KEY'),
+            bucket_name=os.getenv('BUCKET_NAME'),
+        )
         logger.info("SoraWM models initialized")
 
     async def create_task(self) -> str:
@@ -91,6 +100,10 @@ class WMRemoveTaskWorker:
                     self.sora_wm.run, video_path, output_path, progress_callback
                 )
 
+                result = self.r2_uploader.upload_multipart(local_file_path=output_path, remote_key=output_filename,
+                                                           part_size=10 * 1024 * 1024)
+                url = self.r2_uploader.get_file_url(output_filename, expires_in=7200)
+                # print(json.dumps(result))
                 async with get_session() as session:
                     result = await session.execute(
                         select(Task).where(Task.id == task_uuid)
@@ -99,7 +112,7 @@ class WMRemoveTaskWorker:
                     task.status = Status.FINISHED
                     task.percentage = 100
                     task.output_path = str(output_path)
-                    task.download_url = f"/download/{task_uuid}"
+                    task.download_url = url
 
                 logger.info(
                     f"Task {task_uuid} completed successfully, output: {output_path}"
@@ -139,6 +152,7 @@ class WMRemoveTaskWorker:
                 percentage=task.percentage,
                 status=Status(task.status),
                 download_url=task.download_url,
+                expires_in=task.download_url is None if "" else "3600"
             )
 
     async def get_output_path(self, task_id: str) -> Path | None:
