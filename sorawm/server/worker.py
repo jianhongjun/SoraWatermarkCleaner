@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
+from dotenv import load_dotenv
 from loguru import logger
 from sqlalchemy import select
 
@@ -14,8 +15,10 @@ from sorawm.server.db import get_session
 from sorawm.server.models import Task
 from sorawm.server.schemas import Status, WMRemoveResults
 from sorawm.utils.cloudflare_r2_uploader import CloudflareR2Uploader
-from dotenv import load_dotenv
+
 load_dotenv()
+
+
 class WMRemoveTaskWorker:
     def __init__(self) -> None:
         self.queue = Queue()
@@ -152,7 +155,7 @@ class WMRemoveTaskWorker:
                 percentage=task.percentage,
                 status=Status(task.status),
                 download_url=task.download_url,
-                expires_in=task.download_url is None if "" else "3600"
+                expires_in=len(task.download_url) == 0 if "" else "7200"
             )
 
     async def get_output_path(self, task_id: str) -> Path | None:
