@@ -103,7 +103,8 @@ class WMRemoveTaskWorker:
                     self.sora_wm.run, video_path, output_path, progress_callback
                 )
 
-                result = self.r2_uploader.upload_multipart(local_file_path=output_path, remote_key=output_filename,
+                self.r2_uploader.upload_multipart(local_file_path=output_path, remote_key=output_filename,
+                                                           force_download=True,
                                                            part_size=10 * 1024 * 1024)
                 url = self.r2_uploader.get_file_url(output_filename, expires_in=7200)
                 # print(json.dumps(result))

@@ -236,7 +236,8 @@ class CloudflareR2Uploader:
         part_size: int = 5 * 1024 * 1024,  # 5MB
         content_type: Optional[str] = None,
         metadata: Optional[Dict[str, str]] = None,
-        show_progress: bool = True
+        show_progress: bool = True,
+        force_download: bool = False
     ) -> Dict[str, Any]:
         """
         使用分片上传大文件
@@ -248,7 +249,8 @@ class CloudflareR2Uploader:
             content_type: 文件 MIME 类型
             metadata: 文件元数据
             show_progress: 是否显示进度
-            
+            force_download: 是否下载
+
         Returns:
             上传结果信息
         """
@@ -268,9 +270,14 @@ class CloudflareR2Uploader:
         upload_kwargs = {
             'Bucket': self.bucket_name,
             'Key': remote_key,
-            'ContentType': content_type
+            'ContentType': content_type,
+            'ContentDisposition':f'attachment; filename="{file_path.name}"'
         }
-        
+        if force_download:
+            upload_kwargs['ContentDisposition'] = f'attachment; filename="{file_path.name}"'
+        else:
+            upload_kwargs['ContentDisposition'] = f'inline; filename="{file_path.name}"'
+
         if metadata:
             upload_kwargs['Metadata'] = metadata
         
